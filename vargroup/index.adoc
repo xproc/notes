@@ -1,0 +1,247 @@
+= The problem with variable placement
+
+Anyone creating pipelines sophisticated enough to benefit from using
+variables has probably bumped into XProc’s weird little rule about
+them: they can only occur at the beginning of a compound step. In
+other words, this is perfectly legal:
+
+....
+<p:load href="somedoc.xml"/>
+
+<p:group>
+  <p:variable name="foo" select="5"/>
+
+  <ex:mystep someopt="{number(/*/@count) + $foo}"/>
+
+  <p:group>
+    <p:variable name="bar" select="6"/>
+
+    <ex:mystep someopt="{number(/*/@count) + $bar}"/>
+  </p:group>
+
+  <p:store href="out.xml"/>
+</p:group>
+....
+
+(In the interest of brevity, I’m foreshadowing the XProc 2.0 feature
+of attribute value templates, but that’s not significant in this
+example.)
+
+But this is not:
+
+....
+<p:load href="somedoc.xml"/>
+
+<p:variable name="foo" select="5"/>
+
+<ex:mystep someopt="{number(/*/@count) + $foo}"/>
+
+<p:variable name="bar" select="6"/>
+
+<ex:mystep someopt="{number(/*/@count) + $bar}"/>
+
+<p:store href="out.xml"/>
+....
+
+Anyone familiar with XSLT (which is almost certainly everyone using
+XProc) or most other modern programming languages will probably
+find this confusing. The invalid example above looks quite reasonable.
+
+To understand why it’s problematic, we have to expose more explicitly
+what is going on here. Each of these variables has an implicit connection
+to the default readable port. This connection is used to establish the
+context node for evaluating the expression.
+
+Assuming that `ex:mystep` has a single, primary output port named
+`result`, the fully explicit pipeline represented above is this one:
+
+....
+<p:load name="loader" href="somedoc.xml"/>
+
+<p:variable name="foo" select="5">
+  <p:pipe step="loader" port="result"/>
+</p:variable>
+
+<ex:mystep name="mine1" someopt="{number(/*/@count) + $foo}">
+  <p:input port="source">
+    <p:pipe step="loader" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:variable name="bar" select="6"/>
+  <p:pipe step="mine1" port="result"/>
+</p:variable>
+
+<ex:mystep name="mine2" someopt="{number(/*/@count) + $bar}">
+  <p:input port="source">
+    <p:pipe step="mine1" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:store href="out.xml">
+  <p:input port="source">
+    <p:pipe step="mine2" port="result"/>
+  </p:input>
+</p:store>
+....
+
+“Yeah, so?” I hear you say. This still looks entirely reasonable.
+But consider this pipeline:
+
+....
+<p:load name="loader" href="somedoc.xml"/>
+
+<ex:mystep name="mine1">
+  <p:input port="source">
+    <p:pipe step="mine2" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<ex:mystep name="mine2">
+  <p:input port="source">
+    <p:pipe step="loader" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:store href="out.xml">
+  <p:input port="source">
+    <p:pipe step="mine1" port="result"/>
+  </p:input>
+</p:store>
+....
+
+I’ve taken the variables out for a moment to illustrate a completely
+valid pipeline. It’s odd but not wrong to write the steps in an
+“out of order” arrangement like this. Here “mine2” consumes the output
+from the “loader”, “mine1” consumes the output from “mine2” and the
+store step stores the output from “mine1”.
+
+It’s a bit perverse to write out-of-order steps this way, but it’s
+necessarily valid because XProc doesn’t impose any constraints on
+the document order of steps. (Perhaps it could, but doing so would
+make pipelines harder to author in as much as authors would not
+have the freedom to move steps around as they saw fit.)
+
+If we put the variables back in, we get this pipeline:
+
+....
+<p:load name="loader" href="somedoc.xml"/>
+
+<p:variable name="foo" select="5">
+  <p:pipe step="loader" port="result"/>
+</p:variable>
+
+<ex:mystep name="mine1" someopt="{number(/*/@count) + $foo}">
+  <p:input port="source">
+    <p:pipe step="mine2" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:variable name="bar" select="6"/>
+  <p:pipe step="mine1" port="result"/>
+</p:variable>
+
+<ex:mystep name="mine2" someopt="{number(/*/@count) + $bar}">
+  <p:input port="source">
+    <p:pipe step="loader" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:store href="out.xml">
+  <p:input port="source">
+    <p:pipe step="mine1" port="result"/>
+  </p:input>
+</p:store>
+....
+
+If this pipeline contains no cycles, then it must be possible to
+reorder the steps in such a way that there are no “backwards pointing”
+connections. In the case without variables, this is easy:
+
+....
+<p:load name="loader" href="somedoc.xml"/>
+
+<ex:mystep name="mine2">
+  <p:input port="source">
+    <p:pipe step="loader" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<ex:mystep name="mine1">
+  <p:input port="source">
+    <p:pipe step="mine2" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:store href="out.xml">
+  <p:input port="source">
+    <p:pipe step="mine1" port="result"/>
+  </p:input>
+</p:store>
+....
+
+But what about the case with variables? Where and how do variables
+get moved? Unfortunately, there is no good answer to this question.
+In fact, look closely at this pipeline:
+
+....
+<p:load name="loader" href="somedoc.xml"/>
+
+<p:variable name="foo" select="5">
+  <p:pipe step="loader" port="result"/>
+</p:variable>
+
+<ex:mystep name="mine1" someopt="{number(/*/@count) + $foo}">
+  <p:input port="source">
+    <p:pipe step="mine2" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:variable name="bar" select="6"/>
+  <p:pipe step="mine1" port="result"/>
+</p:variable>
+
+<ex:mystep name="mine2" someopt="{number(/*/@count) + $bar}">
+  <p:input port="source">
+    <p:pipe step="loader" port="result"/>
+  </p:input>
+</ex:mystep>
+
+<p:store href="out.xml">
+  <p:input port="source">
+    <p:pipe step="mine1" port="result"/>
+  </p:input>
+</p:store>
+....
+
+Consider the flow of data:
+
+* The step “mine2” depends on “loader” and “$bar”.
+* The variable “$bar” depends on “mine1”.
+* And the step “mine1” depends on “mine2” and “$foo”.
+
+In other words, “mine1” depends on “mine2” which depends on “$bar”
+which depends on “mine1”. This pipeline contains a loop! Loops
+are necessarily forbidden.
+
+Variables are analogous to steps which are connected to all of their
+following sibling steps (and variables) and the descendant steps (and
+variables) of those following sibling steps.
+
+Requiring that variables can only be defined at the beginning of a
+compound step is a simple syntactic rule that eliminates the
+possibility of creating these kinds of circularities.
+
+That was perceived as being easier to understand and explain.
+
+The most liberal possible rule would be that variables are analogous
+to steps which are connected to any step which has references to
+them in XPath expressions. At the moment, it is not necessary for
+an XProc implementor to parse XPath expressions and find variable
+references within them, so this would be an additional burden
+on implementors as well as possibly introducing a quite complex
+explanation for how variables are “moved” when the evaluation order
+of steps in a pipeline is different from the order in which they
+occur in the pipeline document.
+
+That’s the problem with variable placement.
