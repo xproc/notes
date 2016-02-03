@@ -1,0 +1,676 @@
+= XProc Data Flows
+
+Alex Miłowski <alex@milowski.org>, Norman Walsh <ndw@nwalsh.com>, James Fuller <jim.fuller@webcomposite.com>
+
+
+== Introduction
+
+This document introduces an entirely new syntax for XProc:
+
+* It is a text-based syntax in UTF-8.
+* It is in some ways similar to XQuery; parts of the language may in
+  fact end up being borrowed from or extensions of the XQuery 3.1
+  grammar.
+* It is inspired by XProc 1.0; it is attempting to solve the problems
+  outlined in the requirements document for XProc 2.0.
+* We are hoping that this design will present fewer and easier conceptual
+  hurdles than the XML syntax.
+
+XProc remains a data flow language. There are steps, indivisible black
+boxes of computation, connected together into a graph. The connections
+are the bindings between the output(s) of one step and the inputs of
+another.
+
+Step declarations, which are not considered in detail in this paper,
+resemble function declarations. The use of a step resembles a function
+invocation. This has an important consequence: the inputs and outputs
+are both named and ordered. If the declaration for the `xslt` step has
+two inputs, `source` and `stylesheet`, declared in that order, then it
+is coherent to speak of them both by name and by ordinal position: the
+`source` input is first, the `stylesheet` input is second.
+
+=== Terminology
+
+All of the terminology in this document is subject to revision. Some
+of the terms are better and more clearly defined than others. We
+present a list of terms here so that you will recognize them when they
+first appear. Most are explained in more detail, but in this draft,
+not always at the point of first use.
+
+Some terms, such as port, denote the same concept in XProc 2 that they
+did in XProc 1. For conciseness, we use those terms in this draft
+without further explanation.
+
+flow:: A flow is a portion of the data flow graph that the pipeline
+represents. Writing programs in a text file is inherently linear while
+graphs are not. From a graph theoretic perspective, the graph is being
+cut into a set of flows. If you don’t have a background in graph theory,
+don’t worry about that bit, it’s not important that you understand it
+in those terms.
+
+step chain:: A step chain is a strictly linear sequence of steps.
+Step chains are the most significant unit of work in a pipeline.
+Syntactically, a step chain is represented with the arrow
+operator (i.e., `\->` or `→` U+2192).
+
+The left hand side of an arrow is always a step or an input binding.
+The right hand side of an arrow is always a step, an input binding for
+the next step, or an output binding.
+
+input binding:: Every step has an input binding; it is the set of input
+ports from which the step will read to get its input. The simplest
+input binding is an item. A binding can be anonymous, in which case it
+binds to the first input port, or it can be named, in which case it
+binds to the named input port. Assuming that `$in` is a variable bound
+to a document:
+
+* `$in →` binds `$in` to the first input of the step on the right hand
+side of the arrow.
+* `source=$in →` binds `$in` to the `source` input of the step
+on the right hand side of the arrow.
+
+If a step has more than one input, the set of inputs is enclosed in
+square brackets:
+
+* `[$in,$style]→` binds `$in` to the first input and `$style` to the second
+input of the step on the right hand side of the arrow.
+* `[source=$in,stylesheet=$style] →` binds `$in` to the `source` input
+and `$style` to the `stylesheet` input on the right hand side of the arrow.
+
+In an input binding, a literal quoted string is interpreted as a URI reference
+and the semantic is that the contents of the dereferenced URI is used as the input.
+
+* `"document.xml" →` binds the contents of `document.xml` to the first input of the
+step on the right hand side of the arrow.
+
+output binding:: Every step has an output binding; it is the set of
+output ports to which the step will write its output. Output bindings
+can be accessed in two ways:
+
+1. In an input binding between two steps in a step chain
+2. In a block expression between two steps in a step chain
+3. Or at the end of a step chain.
+
+In an input binding between two steps or a block expression, the
+output bindings of the preceding step are accessed ordinally, `$1` is
+the first output binding, `$2` is the second, etc.
+
+NOTE: At the moment, it isn’t possible to refer to output bindings of the
+preceding step by name.
+
+At the end of a step chain, the output binding operator
+`>>` or `≫` U+226B, assigns outputs to variables.
+
+* `≫ $out` binds `$out` to the document sequence that appears on the first output
+port of the step it follows.
+* `≫ result=$out` binds `$out` to the `result` output of the step it follows.
+
+If a step has more than one output, the set of outputs can be enclosed in
+square brackets:
+
+* `≫ [$out,$chunks]` binds `$out` to the document sequence that appears on
+the first output port of the step it follows and `$chunks` to the documents
+that appear on the second output port.
+* `≫[secondary=$chunks,result=$out]` binds `$out` to the documents on the `result` output
+port and `$chunks` to the documents on the `secondary` output port.
+
+variables:: A variable, `$varname` is a lexically scoped reference to
+a sequence of XDM items or an output port. The distinction is not
+significant in everyday usage, pipeline authors can always think of a
+variable as denoting a sequence of items. However, from an
+implementation perspective, an output port variable represents a
+connection in the graph to every step that references that variable.
+An analysis of input bindings and output bindings may allow a
+processor to build an entirely streaming implementation of (some)
+pipelines that never need to reify output port variables.
+
+block expressions:: A block expression is an inlined expression that
+can perform some relatively small amount of computation. It’s possible
+to describe the XProc flow language without block expressions; every
+block expression can be turned into a step that implements the
+expression. But that would be very tedious in practice.
+
+NOTE: The expression language inside the block expression is imagined as a
+subset of XQuery 3.1. The exact nature of the subset is still being
+discussed. The canonical expression is an `if`/`then`/`else` test.
+
+Block expressions occupy the position of a step in a step chain,
+consequently they may consume the outputs from the immediately
+preceding step (if there is one), and they may produce outputs.
+
+Within a block expression, the syntax of the output binding operator is
+extended slightly. The outputs of the block expression are referenced
+ordinally using an `@`; `≫ @1` writes to the first output,
+`≫ @2` writes to the second output, etc.
+
+=== Understanding XProc 2.0
+
+A flow is a description of the data flow graph.  On the left and right
+sides of a chain of steps, we use structuring and de-structuring to
+assign ports to variables.  The result is a variable that (logically)
+denotes a sequence of items.
+
+Steps have declarations but are not described otherwise within the
+flow.  An implementation can associate a step signature with an
+implementation in their domain language by match function signatures.
+
+Step invocations can be chained together by ordering them in a
+sequence connected by the arrow operator (i.e., `\->` or `→` U+2192). A step
+chain must fully specify the input port bindings along with any
+required options.
+
+== An Example
+
+Let’s begin with an example pipeline. This is the “example 3” pipeline from
+the XProc 1.0 specification.
+
+----
+xproc version = "2.0"; <1>
+
+(: This example is from the XProc 1.0 specification (example 3). :)
+
+ inputs $source as document-node(); <2>
+outputs $result as document-node(); <3>
+
+$source → { if (xs:decimal($1/*/@version) < 2.0) <4>
+            then [$1,"v1schema.xsd"] → validate-with-xml-schema() ≫ @1 <5>
+            else [$1,"v2schema.xsd"] → validate-with-xml-schema() ≫ @1}
+        → [$1,"stylesheet.xsl"] → xslt() <6>
+≫ $result <7>
+----
+<1> The declaration that begins an XProc 2.0 pipeline
+<2> The pipeline inputs can be declared externally
+<3> So can the outputs
+<4> Inside this block `$1` refers to the first input, in this case `$source`.
+<5> Using `@1` writes the validated result to the first output of this block expression
+<6> The first (in this case only) output from the block expression is used as the
+    first input to the `xslt()` step.
+<7> The final output binding writes the result of the pipeline to the `$result` output.
+
+== Step Chains
+
+A step chain is a sequence of step invocations separated by the chain
+operator (i.e., `\->` or `→` U+2192). On the left of the chain
+operator is always a preceding step or input bindings. On the right
+must be a step invocation, a block expression, or an optional output
+binding.
+
+The simplest input binding is a single expression that evaluates to a
+sequence of one or more items. For example, the document(s) bound to
+`$in` can be an input binding for the XInclude step:
+
+....
+  $in → xinclude()
+....
+
+If a step takes multiple inputs, the individual bindings must be
+surrounded by square brackets:
+
+....
+  ["document.xml", "style.xsl"] → xslt()
+....
+
+In a binding with multiple inputs, the first input is bound to the first
+input port (in declaration order), the second input to the second port, etc.
+If necessary, or for clarity, a binding may be preceded by a name
+assignment that explicitly names a port:
+
+....
+  [source="document.xml", stylesheet="style.xs"] → xslt()
+....
+
+If positional and name references are mixed, all positional references
+must precede the first named reference.
+
+Steps produce some number of outputs on named ports. The outputs of a
+step invocation immediately preceding the chain operator are available
+as numbered inputs `$1`, `$2`, etc. whose order is the order of the
+output declarations on the step. For example, the `xslt()` step has
+two output ports, `result` and `secondary`, declared in that order.
+Following an `xslt()` step, `$1` refers to the `result` port and `$2`
+refers to the `secondary` port.
+
+....
+  $in → xinclude() → [$1,"stylesheet.xsl"] → xslt()
+....
+
+A reference to an ordinal port that does not exist produces an empty
+sequence of documents.
+
+NOTE: This is an explicit relaxation of the rules in XProc 1.0 where all bindings
+had to be composed statically, exactly, and perfectly. It facilitates the use
+of block expressions where the number of outputs may not always be the same.
+This explicitly relaxes the rule that all of the outputs from a conditional
+must be identical.
+
+NOTE: It may be necessary to provide a function or other mechanism for testing
+at runtime if a reference to `$3` (for example) is empty because the third output port produced
+an empty sequence or because there _was no_ third output port.
+
+If two steps are connected together without an intervening input binding,
+the implicit input binding is that the ports are connected ordinally:
+
+....
+  → [$1,$2,$3,…$n] →
+....
+
+So this flow:
+
+....
+  $in → xinclude() → store("included.xml")
+....
+
+is equivalent to this one:
+
+....
+  $in → xinclude() → [$1] → store("included.xml")
+....
+
+
+== Inputs
+
+=== URI inputs
+
+A literal string in a port binding is a URI reference and the resource
+identified by the URI will be loaded and bound to the port.
+
+....
+  "doc.xml" → xinclude()
+....
+
+An input can also be a sequence of documents using matching parens:
+
+....
+  ("d1.xml","d2.xml","d3.xml") → xinclude()
+....
+
+Expressions and literals may be mixed to produce new sequences:
+
+....
+  ($in,"doc.xml") → xinclude()
+....
+
+Step inputs can be combined:
+
+....
+  [collection=($main,$secondary), query="query.xq"] → xquery()
+....
+
+and can be used in more complex expressions:
+
+....
+  [$in,"stylesheet.xsl"] → xslt() → [($1,$2),"query.xq"] → xquery()
+....
+
+=== Literal inputs
+
+A literal can be specified using a media-type specific data
+constructor. For example, a data constructor may construct a JSON
+object by include the object within the curly braces:
+
+....
+  data "application/json" {
+     {
+        name: "Alex",
+        favoriteColor: "orange"
+     }
+  }
+....
+
+JSON array construction is also allowed:
+
+....
+  data "application/json" { [ 1,2,3,4] }
+....
+
+An XML element may be constructed by embedding the literal within the
+curly braces:
+
+....
+  data "application/xml" { <doc><title>A test</title></doc> }
+....
+
+An HTML element can be similarly constructed:
+
+....
+  data "text/html" {
+      <!DOCTYPE html>
+      <html>
+      <head><title>Template</title>
+      <link type="text/css" href="style.css">
+      </head>
+      <body>…</body>
+      </html>
+  }
+....
+
+Text may also be directly embedded:
+
+....
+  data "text/plain" { "Now is the time for all good XProc …" }
+....
+
+NOTE: AVT expansion and curly brace escaping are unspecified here.
+
+Processors are free to extend literal construction with the constraint
+that the format can be unambiguously embedded within curly braces.
+
+== Output bindings
+
+The output binding operator (i.e., '>>' or `≫` U+226B) takes a step
+chain or port variable reference on the left hand side and binds the
+output to the right hand side (i.e., a port variable reference, a URI
+reference, or an ordered port ordinal.). The output binding operator
+is used to construct more complex chains of data flows, store results,
+or write to output ports for returning results.
+
+The symbol “≫” is evocative of the “append” operation familiar from
+many command-line systems. An output binding appends data to its
+right hand side in the sense that it causes data to be sent there
+and if several chains cause data to be sent to the same place, the
+effect will be logical appending.
+
+The identity assignment is performed by simply binding the input to the
+output:
+
+....
+  $in ≫ $out
+....
+
+The result is all the input on `$in` is sent to the output port `$out`
+as it flows through the graph.
+
+A literal URI reference implies a document store:
+
+....
+  "doc.xml" → xinclude() ≫ "included.xml"
+....
+
+In the case of implicit store, if the same output URI is used more
+than once, the result of sending a sequence there is implementation
+defined (e.g., the last document written).
+
+If the outputs need to be referenced as inputs elsewhere, they can be
+assigned to variables:
+
+  $in → xinclude() ≫ $included
+  [$included,"schema.xsd"] → validate-with-xml-schema()
+  [$included,"stylesheet.xsl"] → xslt() ≫ [result=$out,secondary=$chunks]
+
+Variables assigned in this way can be used like any other variable in
+expressions, but the implementation must enforce the following
+semantics:
+
+1. Any reference to the variable must return all the documents written
+by all of the step chains that write to that variable
+2. All of the documents written by any single step chain must be adjacent
+in the resulting sequence and must be in the order written by the ultimate
+step in that chain.
+3. Any referencial circularity raises a static error
+
+For example, the following has two documents flowing through
+`$included`:
+
+ "doc1.xml" → xinclude() ≫ $included
+ "doc2.xml" → xinclude() ≫ $included
+ $included → validate-with-xml-schema()
+
+The first two step chains are independent and the processor is free to run
+them in either order, or in parallel. However, what is passed to
+`validate-with-xml-schema()` when the `$included` variable is referenced
+_must_ be all of the documents written by the first chain followed by all
+of the documents written by the second, or vice versa.
+
+The names of output ports can be omitted in which case the assignments
+are taken in declaration order. For example, the XSLT step declares
+the `result` port first and the `secondary` port second. An explicit
+set of bindings:
+
+....
+  [source=$in,stylesheet="stylesheet.xsl"] → xslt() ≫ [result=$out,secondary=$chunks]
+....
+
+can be shortened to:
+
+....
+  [$in,"stylesheet.xsl"] → xslt() ≫ [$out,$chunks]
+....
+
+Within any context, every declared output port has an unnamed ordinal.
+Some expressions (e.g. block expressions) have implicitly declared
+output ports.
+
+The ordinals can be referenced by name as `@1`, `@2`, etc.
+
+....
+  $in → { if ($1/doc/cheese='cheddar')
+          then consume() ≫ @1
+          else reject() ≫ @1 }
+       ≫ $out
+....
+
+== Step Declarations and Invocations
+
+All steps are declared as external procedures with any number of named
+inputs and outputs.
+
+ step my:computation()
+  inputs $source as document-node(),
+ outputs $result as xs:int*;
+
+Steps are always declared with qualified name.  When they are are
+invoked, a default namespace may be assumed by the processor.
+
+Steps may have any number of options that can be optional and defaulted:
+
+....
+  step p:xslt(
+    $initial-mode as xs:string ?,
+    $template-name as xs:string?,
+    $output-base-uri as xs:string?,
+    $parameters as map()? = (),
+    $version as xs:string = "2.0"
+  )
+     inputs $source as document-node()+,
+            $stylesheet as document-node()
+     outputs $result as document-node()?,
+             $secondary as document-node()*;
+....
+
+All required options must be listed first in the declaration.
+
+Options values are specified on invocation.  Any unnamed option values
+are matched in declaration order.  Afterwards, all parameters must be specified with a name.
+
+For example:
+
+   xslt("toc",$output-base-uri=base-uri($source))
+
+invokes the `xslt` step with the option value "toc" for
+`$initial-mode` and explicitly named value for `$output-base-uri` but
+does not specify a value for `$template-name`.  The value of
+`$version` is defaulted to "2.0".
+
+== Block Expressions
+
+A step chain may contain a block expression.  A block expression
+always has a ordinal set of inputs and outputs.  The inputs are
+assigned from the context of the expression in the chain.  The outputs
+are assigned based on the flow contained within the expression.
+
+A block expression is enclosed within a set of curly brackets and
+contains any number of step chains or other statements.
+
+== Conditionals
+
+A conditional may be placed within a step chain when surrounded by
+curly brackets:
+
+  $in → { if ($1/*/@version eq "v1.0")
+          then $1,"crummy.xsl" → xslt() ≫ @1
+          else $1,"better.xsl" → xslt() ≫ @1 }
+      ≫ $out
+
+When the if/then expression is invoked, it acts as a guard on the
+flows contained within the clause.  Only one of the flows will
+execute.
+
+The outputs of the block are completely determined by the flows
+executed.  If they do not append any output to the ordinal outputs of
+the block expression, the expression will not have any output.  That
+is, there is no implicit chaining of outputs.
+
+NOTE: What functions are available in the test conditional? Can I use
+`last()` or `position()` for example?
+
+== Variables
+
+Within curly bracketed expressions, a let clause may be use to assign
+variables to values:
+
+ $in → {
+    let $version := xs:int($1/*/@version) {
+       if ($version < 2)
+       then [$1,"schema1.xsd"] → validate-with-xml-schema() ≫ @1
+       else if ($version < 3)
+       then [$1,"schema2.xsd"] → validate-with-xml-schema() ≫ @1
+       else fail("No schema available")
+    }
+ } ≫ $out
+
+The variables share the same scope as port variable references but
+cannot be used within append operators on the right side.
+
+For example, this is not legal:
+
+ $in → {
+    let $dates := xs:dateTime($1/*/updated) {
+      [$1,"schema1.xsd"] → validate-with-xml-schema() ≫ [@1,$dates]
+    }
+ }
+
+but you can do this:
+
+ $in → {
+    let $dates := xs:dateTime($1/*/updated) {
+      $dates >> @2
+      [$1,"schema1.xsd"] → validate-with-xml-schema() ≫ @1
+    }
+ }
+
+== Projections
+
+A source can be turned into a sequence by an expression.  The result
+is a port that contains a sequence of items.
+
+For example:
+
+ $in//section → count() ≫ $out
+
+assigns the count of `section` element subtrees.
+
+NOTE: ndw: I still thinks it would be better to have a step that does this; then
+there can be an xpath() step, a jsonpath() step, a csv() step, etc. rather than
+building the semantics of projection into our expression language.
+
+== Iteration
+
+Iteration is a core operation and can be embedded within a step chain
+with the `!` operator.  For example:
+
+ ("d1.xml","d2.xml","d3.xml") ! { [$1,"schema.xsd"] → validate-with-xml-schema() ≫ @1}
+
+validates the three documents contained in the sequence.
+
+The result of an iteration operation is a set of output bindings where the first
+binding contains all of the documents written to `@1`, the second all of the documents
+written to `@2`, etc.
+
+== Replacement
+
+NOTE: formerly know as "viewports"
+
+A portion of a document can be iterated over and replaced by an
+embedded step chain.  The `replace` operator requires a single input,
+an expression, and a step chain body.
+
+For each subtree matched, the block expression is run with the subtree
+on the positional input port $1.  The item on the positional output port @1 will
+be its replacement.
+
+It is an error if the block expression does not produce a replacement.
+
+NOTE: ndw: I think this error is in conflict with our earlier rule that attempting to
+read a port that wasn’t used returns the empty sequence. I think if step chain body
+doesn’t write to `@1`, the replacement is simply the empty sequence.
+
+For example:
+
+ $in → replace (/doc/section) { [$1,"style.xsl"] → xslt() ≫ @1 } ≫ $out
+
+applies XSLT over a subtree.
+
+
+== Tee
+
+A chain can have an alternate flow embedded within the chain using the
+tee operator (`tee` or `⊤`).  The flow must be a block expression.
+The outputs following tee expression are exactly the same as if the
+tee operator had been omitted.
+
+In the following example, the result of the `xinclude()` step is
+stored via an tee operator and that result is also transformed by the
+`xslt()` step.
+
+ $in → xinclude() ⊤ { $1 ≫ "included.xml" }
+     → [$1,"stylesheet.xsl"] → xslt()
+     ≫ $out
+
+
+== Flow Declarations
+
+A flow can named and reused:
+
+ flow my:process
+    inputs $source as document-node(),
+   outputs $result as document-node() {
+     $source → xinclude() → [$1,"stylesheet.xsl"] → xslt() ≫ $result
+  };
+
+  "doc.xml" → my:process() ≫ "doc.html"
+
+== XProc Modules
+
+XProc modules are top-level containers for reuse.  Every XProc module must start with:
+
+ xproc version = "2.0";
+
+A module consists of a version declaration (above), a set of
+declarations, and a single optional unnamed flow description.
+
+A module may end with a flow description.  The inputs and outputs of
+that port must be provided by the implementation when the module is
+invoked.
+
+A module may import other declarations via the import statement:
+
+ import "library.xpl";
+
+A module may import declarations in the expression language:
+
+ import "functions.xq";
+
+A module may also declare options as parameters to the module.
+
+ option $user as xs:string;
+ option $passwd as xs:string;
+
+A must provide declarations for any undefined inputs and outputs to
+the flow:
+
+  inputs $source as document-node();
+ outputs $result as document-node();
+
+== Grammar
+
+Not done yet ...
