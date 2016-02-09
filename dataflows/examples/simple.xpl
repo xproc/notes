@@ -15,11 +15,13 @@ xproc version = "2.0";
    document.  The flow itself is unnamed as no name is needed.
 :)
 
-flow (^source as document-node()) output ^result as document-node() {
 
-   ^source
-   => p:xinclude()
-   => p:validate-with-xml-schema(doc("schema.xsd"))
-   => p:xslt(doc("style.xsl")) => ^result
-   
-}
+input $source as document-node();
+output $result as document-node();
+
+$source → xinclude()
+        → _,schema="schema.xsd" → validate-with-xml-schema()
+        → _,stylesheet="style.xsl" → xslt()
+        → $result
+
+

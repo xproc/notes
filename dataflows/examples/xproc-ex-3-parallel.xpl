@@ -13,22 +13,20 @@ xproc version = "2.0";
    (^html and ^toc).  It would be just as easy to have a meet in the graph and
    have one output port.
 
-   ISSUE: The parallel flows are just comma-separted following the let statement.  An
-   open issue here is the lack of a comma would either be a syntax error or two
-   completely separate flows.  If the latter, lots of simple programming errors could
-   result because of an omitted comma.
-
 :)
 
-flow (^source as document-node()) output ^html as document-node(), ^toc as document-node() {
+inputs $source as document-node();
+outputs $result as document-node(),
+        $toc as document-node();
 
-  let $included := ^source => p:include()
-    flow {
-      if (number(^source/*/@version) < "2.0") 
-      then $included^result => p:validate-with-xml-schema(doc("v1schema.xsd"))
-      else $included^result => p:validate-with-xml-schema(doc("v2schema.xsd")) 
-      => p:xslt(doc("stylesheet.xsl")
-      => ^result,
-      $included^result => p:xslt(doc("toc.xsl")) => ^toc
-    }
-}
+$source → xinclude() ≫ $included
+
+$included
+ → { if (xs:int($1/*/@version) < 2.0)
+     then [$1,"v1schema.xsd"] → validate-with-xml-schema() ≫ @1
+     else [$1,"v2schema.xsd"] → validate-with-xml-schema() ≫ @1
+   }
+ → [$1,"stylesheet.xsl"] → xslt()
+ ≫ $result
+
+[$included,"toc.xsl"] → xslt() ≫ $toc

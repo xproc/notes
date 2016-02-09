@@ -19,57 +19,48 @@ xproc version = "2.0";
    that would not always be the case.
 :)
 
-declare variable $xdb.user as external;
-declare variable $xdb.password as external;
-declare variable $xdb.host as external;
-declare variable $xdb.port as external;
+import "marklogic.xpl";
+namespace s="http://weather.milowski.com/V/APRS/";
+namespace ml="http://xmlcalabash.com/ns/extensions/marklogic";
 
-declare step my:insert-reports(
-  $source as document-node()
-) output ^count as xs:integer
-{
-   p:viewport($source,$match := "/s:aprs/s:report",
-      function ($node) as node() {
-         let $insert := ml:insert-document(
-            $node, $user := $xdb.user, $password := $xdb.password,
-            $host := $xdb.host, $port := $xdb.port,
-            $uri := 'http://weather.milowski.com/station/' || $id || '/' || 
-                $node/@received || '.xml')
-            return <inserted/>
-   }) =>
-   p:count($match := "/s:aprs/inserted") => ^count
-}
+option $xdb.user as xs:string;
+option $xdb.password as xs:string;
+option $xdb.host as xs:string;
+option $xdb.port as xs:string;
 
-declare step my:update-positions(
-  $source as document-node()
-) output ^count as xs:integer
-{
-   p:xslt($source, doc("make-position-update.xsl")) =>
-   p:viewport($match := "/queries/c:query",
-      function ($node) as node() {
-         let $doc := ml:adhoc-query(
-              $node, $user := $xdb.user, $password := $xdb.password,
-              $host := $xdb.host, $port := $xdb.port
-            )
-            return <query/>
-   }) =>
-   p:count($match := "/queries/query") => ^count
-}
+inputs $data as document-node();
+outputs $records as xs:integer,
+        $positions as xs:integer;
+        
 
+$data/s:aprs/s:report[@type != 'encoded']
+ → $1/s:aprs/s:report[@type != 'position']
+ → $1/s:aprs/s:report[not(@error)]
+ ≫ $filtered
 
-declare flow my:import(^source as document-node()) output ^records as xs:integer, ^positions as xs:integer {
-  let $filtered := flow output ^subset as document-node() {
-      p:delete(^source, $match := "/s:aprs/s:report[@type='encoded']") =>
-      p:delete($match := "/s:aprs/s:report[@type='position']") =>
-      p:delete($match := "/s:aprs/s:report[@error]") => ^subset
-    }
-    flow {
-       $filtered^subset => my:insert-reports() => ^records ,
-       $filtered^subset => my:update-positions() => ^positions
-    }
-}
+$filtered
+ → replace (/s:aprs/s:report) {
+     let $uri := 'http://weather.milowski.com/station/' ||
+                 $1/*/@id || '/' || 
+                 $1/*/@id/@received || '.xml'
+     {                
+       $1 → ml:insert-document(
+              user=$xdb.user, password=$xdb.password,
+              host=$xdb.host, port=$xdb.port,
+              uri=$uri)
+       data "text/xml" { <inserted/> } ≫ @1
+     }
+   }
+ → $1/*/inserted → count() ≫ $records
 
-flow output ^records as xs:integer, ^positions as xs:integer {
-  my:import(doc("data.xml")) => ^result,^positions
-}
+$filtered
+ → [$1,"make-position-update.xsl"] → xslt()
+ → replace (/queries/query) {
+   $1 → ml:adhoc-query(
+          user=$xdb.user, password=$xdb.password,
+          host=$xdb.host, port=$xdb.port)
+      ≫ @1
+   }
+ → $1/*/query → count() ≫ $positions 
 
+  

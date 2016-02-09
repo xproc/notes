@@ -10,15 +10,17 @@ xproc version = "2.0";
 
 :)
 
-flow (^source as document-node(), ^other as document-node()) output ^result1 as document-node(), ^result2 as document-node() {
+inputs $source as document-node(),
+       $other as document-node();
+outputs $result1 as document-node(),
+        $result2 as document-node();
 
-   ^source
-   => p:xinclude()
-   => p:validate-with-xml-schema(doc("schema.xsd"))
-   => p:xslt(doc("style.xsl")) => ^result1,
-
-   ^other
-   => p:xinclude)
-   => p:validate-with-xml-schema(doc("schema.xsd"))
-   => p:xslt(doc("style.xsl")) => ^result2
-}
+$source → xinclude()
+        → [$1,"schema.xsd"] → validate-with-xml-schema()
+        → [$1,"style.xsl"] → xslt()
+        ≫ $result1
+        
+$other → xinclude()
+       → [$1,"schema.xsd"] → validate-with-xml-schema()
+       → [$1,"style.xsl"] → xslt()
+       ≫ $result2
