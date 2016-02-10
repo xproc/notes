@@ -135,7 +135,7 @@ preceding step (if there is one), and they may produce outputs.
 
 Within a block expression, the syntax of the output binding operator is
 extended slightly. The outputs of the block expression are referenced
-ordinally using an `@`; `≫ @1` writes to the first output,
+ordinally using an `@`-sign; `≫ @1` writes to the first output,
 `≫ @2` writes to the second output, etc.
 
 === Understanding XProc 2.0
