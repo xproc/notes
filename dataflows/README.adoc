@@ -83,13 +83,8 @@ and the semantic is that the contents of the dereferenced URI is used as the inp
 * `"document.xml" →` binds the contents of `document.xml` to the first input of the
 step on the right hand side of the arrow.
 
-output binding:: Every step has an output binding; it is the set of
-output ports to which the step will write its output. Output bindings
-can be accessed in two ways:
-
-1. In an input binding between two steps in a step chain
-2. In a block expression between two steps in a step chain
-3. Or at the end of a step chain.
+output binding:: Steps have outputs that can be accessed by output
+bindings or implictly as via ordinal bindings.
 
 In an input binding between two steps or a block expression, the
 output bindings of the preceding step are accessed ordinally, `$1` is
