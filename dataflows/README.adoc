@@ -55,7 +55,7 @@ operator (i.e., `\->` or `→` U+2192).
 
 The left hand side of an arrow is always a step or an input binding.
 The right hand side of an arrow is always a step, an input binding for
-the next step, or an output binding.
+the next step, or a block expression.
 
 input binding:: Every step has an input binding; it is the set of input
 ports from which the step will read to get its input. The simplest
