@@ -677,7 +677,11 @@ XProc ::= XProcModule EOF
 XProcModule ::= XProcVersionDecl? XProcProlog XProcFlow?
 XProcVersionDecl ::= 'xproc' 'version' '=' StringLiteral XProcSeparator
 
-XProcProlog   ::= ( ( XProcDefaultNamespaceDecl | XProcNamespaceDecl | XProcImport ) XProcSeparator )* (XProcInputs XProcSeparator)? (XProcOutputs XProcSeparator)? (XProcOptionDecl XProcSeparator)* (XProcStepDecl XProcSeparator)*
+XProcProlog   ::= ( ( XProcDefaultNamespaceDecl | XProcNamespaceDecl | XProcImport ) XProcSeparator )*
+                  (XProcInputs XProcSeparator)?
+                  (XProcOutputs XProcSeparator)?
+                  (XProcOptionDecl XProcSeparator)*
+                  (XProcStepDecl XProcSeparator)*
 
 XProcImport ::= 'import' XProcURILiteral
 
@@ -693,7 +697,8 @@ XProcFlow ::= XProcFlowStatement+
 
 XProcFlowStatement ::= ( XProcStepChain XProcOutputBinding? ) | XProcIfStatement | XProcLetStatement
 
-XProcStepChain ::= (( XProcSequenceLiteral | XProcInputPortList ) XProcStepChainItem+) | ((XProcStepInvocation | XProcBlockStatement) XProcStepChainItem*) 
+XProcStepChain ::= (( XProcSequenceLiteral | XProcInputPortList ) XProcStepChainItem+) |
+                   ((XProcStepInvocation | XProcBlockStatement) XProcStepChainItem*) 
 
 XProcStepChainItem ::= XProcChainedItem | XProcIteratedItem | XProcTeedItem | XProcReplacedItem
 
@@ -1129,5 +1134,6 @@ Wildcard ::= '*'
 QName^Token << 'ancestor' 'ancestor-or-self' 'and' 'array' 'attribute' 'cast' 'castable' 'child' 'comment' 'declare' 'descendant' 'descendant-or-self' 'div' 'document-node' 'element' 'else' 'eq' 'except' 'following' 'following-sibling' 'ge' 'gt' 'idiv' 'if' 'import' 'inputs' 'instance' 'intersect' 'is' 'item' 'le' 'let' 'lt' 'map' 'mod' 'namespace-node' 'ne' 'node' 'option' 'or' 'outputs' 'parent' 'preceding' 'preceding-sibling' 'processing-instruction' 'replace' 'self' 'step' 'tee' 'text' 'to' 'treat' 'union' 'xproc' 
 
 '*' << Wildcard
+
 
 ....
