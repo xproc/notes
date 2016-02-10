@@ -502,8 +502,8 @@ A conditional may be placed within a step chain when surrounded by
 curly brackets:
 
   $in → { if ($1/*/@version eq "v1.0")
-          then $1,"crummy.xsl" → xslt() ≫ @1
-          else $1,"better.xsl" → xslt() ≫ @1 }
+          then [$1,"crummy.xsl"] → xslt() ≫ @1
+          else [$1,"better.xsl"] → xslt() ≫ @1 }
       ≫ $out
 
 When the if/then expression is invoked, it acts as a guard on the
