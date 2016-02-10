@@ -147,7 +147,7 @@ denotes a sequence of items.
 
 Steps have declarations but are not described otherwise within the
 flow.  An implementation can associate a step signature with an
-implementation in their domain language by match function signatures.
+implementation in their domain language by matching function signatures.
 
 Step invocations can be chained together by ordering them in a
 sequence connected by the arrow operator (i.e., `\->` or `→` U+2192). A step
