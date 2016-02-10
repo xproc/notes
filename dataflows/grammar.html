@@ -1,0 +1,27 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<html> <head>
+<title>Grammar Checker</title>
+<script type="text/javascript" src="grammar.js"></script>
+<script type="text/javascript" src="check.js"></script>
+</head>
+
+<body>
+
+<button id="parse">Parse</button>
+<br/>
+<textarea id="xproc" rows="40" cols="80">
+xproc version = "2.0";
+
+(: This example is from the XProc 1.0 specification (example 3). :)
+
+ inputs $source as document-node();
+outputs $result as document-node();
+
+$source → { if (xs:decimal($1/*/@version) &lt; 2.0)
+            then [$1,"v1schema.xsd"] → validate-with-xml-schema() ≫ @1
+            else [$1,"v2schema.xsd"] → validate-with-xml-schema() ≫ @1}
+        → [$1,"stylesheet.xsl"] → xslt()
+≫ $result
+</textarea>
+
+</body> </html>
