@@ -2,6 +2,10 @@
 
 Alex Miłowski <alex@milowski.org>, Norman Walsh <ndw@nwalsh.com>, James Fuller <jim.fuller@webcomposite.com>
 
+:toc:
+:toclevels: 4
+:sectnums:
+
 
 == Introduction
 
