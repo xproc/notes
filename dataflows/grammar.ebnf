@@ -23,7 +23,7 @@ XProcFlow ::= XProcFlowStatement+
 
 XProcFlowStatement ::= ( XProcStepChain XProcOutputBinding? ) | XProcIfStatement | XProcLetStatement
 
-XProcStepChain ::= (( XProcSequenceLiteral | XProcInputPortList ) XProcStepChainItem+) |
+XProcStepChain ::= (XProcSequenceLiteral XProcStepChainItem+) |
                    ((XProcStepInvocation | XProcBlockStatement) XProcStepChainItem*) 
 
 XProcStepChainItem ::= XProcChainedItem | XProcIteratedItem | XProcTeedItem | XProcReplacedItem
@@ -37,7 +37,7 @@ XProcIteratedItem ::= XProcIteration XProcBlockStatement
 XProcTeedItem ::= XProcTee XProcBlockStatement XProcChainedItem
 XProcReplacedItem ::= XProcReplace '(' PathExpr ')' XProcBlockStatement
 
-XProcChainItem ::= XProcInputPortList | XProcStepInvocation | XProcBlockStatement
+XProcChainItem ::=  XProcStepInvocation | XProcBlockStatement
 
 XProcArrow ::= '=>' | '→'
 
@@ -71,7 +71,7 @@ XProcPortRef ::= '$' QName
 
 XProcProjection ::= '/' ( RelativePathExpr / ) | '//' RelativePathExpr
 
-XProcStepInvocation ::= XProcStepName XProcArgumentList
+XProcStepInvocation ::= (XProcInputPortList XProcArrow)? XProcStepName XProcArgumentList
 
 XProcStepName ::= QName
 

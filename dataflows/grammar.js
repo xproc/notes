@@ -1,4 +1,4 @@
-// This file was generated on Wed Feb 10, 2016 15:50 (UTC+01) by REx v5.35 which is Copyright (c) 1979-2015 by Gunther Rademacher <grd@gmx.net>
+// This file was generated on Thu Feb 11, 2016 16:06 (UTC+01) by REx v5.35 which is Copyright (c) 1979-2015 by Gunther Rademacher <grd@gmx.net>
 // REx command line: grammar.ebnf -ll 3 -javascript -tree
 
 function grammar(string, parsingEventHandler)
@@ -338,42 +338,10 @@ function grammar(string, parsingEventHandler)
     eventHandler.startNonterminal("XProcStepChain", e0);
     switch (l1)
     {
-    case 7:                         // QName^Token
-    case 102:                       // '{'
-      switch (l1)
-      {
-      case 7:                       // QName^Token
-        parse_XProcStepInvocation();
-        break;
-      default:
-        parse_XProcBlockStatement();
-      }
-      for (;;)
-      {
-        lookahead1W(61);            // StringLiteral | QName^Token | S^WS | EOF | '!' | '$' | '(' | '(:' | '=>' | '>>' |
-                                    // '[' | 'else' | 'if' | 'let' | 'replace' | 'tee' | '{' | '}' | '→' | '≫' | '⊤'
-        if (l1 != 12                // '!'
-         && l1 != 34                // '=>'
-         && l1 != 91                // 'replace'
-         && l1 != 94                // 'tee'
-         && l1 != 106               // '→'
-         && l1 != 108)              // '⊤'
-        {
-          break;
-        }
-        whitespace();
-        parse_XProcStepChainItem();
-      }
-      break;
-    default:
-      switch (l1)
-      {
-      case 40:                      // '['
-        parse_XProcInputPortList();
-        break;
-      default:
-        parse_XProcSequenceLiteral();
-      }
+    case 4:                         // StringLiteral
+    case 14:                        // '$'
+    case 15:                        // '('
+      parse_XProcSequenceLiteral();
       for (;;)
       {
         lookahead1W(48);            // S^WS | '!' | '(:' | '=>' | 'replace' | 'tee' | '→' | '⊤'
@@ -390,6 +358,32 @@ function grammar(string, parsingEventHandler)
         {
           break;
         }
+      }
+      break;
+    default:
+      switch (l1)
+      {
+      case 102:                     // '{'
+        parse_XProcBlockStatement();
+        break;
+      default:
+        parse_XProcStepInvocation();
+      }
+      for (;;)
+      {
+        lookahead1W(61);            // StringLiteral | QName^Token | S^WS | EOF | '!' | '$' | '(' | '(:' | '=>' | '>>' |
+                                    // '[' | 'else' | 'if' | 'let' | 'replace' | 'tee' | '{' | '}' | '→' | '≫' | '⊤'
+        if (l1 != 12                // '!'
+         && l1 != 34                // '=>'
+         && l1 != 91                // 'replace'
+         && l1 != 94                // 'tee'
+         && l1 != 106               // '→'
+         && l1 != 108)              // '⊤'
+        {
+          break;
+        }
+        whitespace();
+        parse_XProcStepChainItem();
       }
     }
     eventHandler.endNonterminal("XProcStepChain", e0);
@@ -520,14 +514,11 @@ function grammar(string, parsingEventHandler)
     eventHandler.startNonterminal("XProcChainItem", e0);
     switch (l1)
     {
-    case 40:                        // '['
-      parse_XProcInputPortList();
-      break;
-    case 7:                         // QName^Token
-      parse_XProcStepInvocation();
+    case 102:                       // '{'
+      parse_XProcBlockStatement();
       break;
     default:
-      parse_XProcBlockStatement();
+      parse_XProcStepInvocation();
     }
     eventHandler.endNonterminal("XProcChainItem", e0);
   }
@@ -799,6 +790,15 @@ function grammar(string, parsingEventHandler)
   function parse_XProcStepInvocation()
   {
     eventHandler.startNonterminal("XProcStepInvocation", e0);
+    if (l1 == 40)                   // '['
+    {
+      parse_XProcInputPortList();
+      lookahead1W(33);              // S^WS | '(:' | '=>' | '→'
+      whitespace();
+      parse_XProcArrow();
+    }
+    lookahead1W(3);                 // QName^Token | S^WS | '(:'
+    whitespace();
     parse_XProcStepName();
     lookahead1W(5);                 // S^WS | '(' | '(:'
     whitespace();
