@@ -1,14 +1,19 @@
 <!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
 <html> <head>
 <title>Grammar Checker</title>
+<style type="text/css">
+#status {
+   height: 2em;
+}
+</style>
 <script type="text/javascript" src="grammar.js"></script>
 <script type="text/javascript" src="check.js"></script>
 </head>
 
 <body>
 
-<button id="parse">Parse</button>
-<br/>
+<p id="status"> </p>
+<p><button id="parse">Parse</button></p>
 <textarea id="xproc" rows="40" cols="80">
 xproc version = "2.0";
 

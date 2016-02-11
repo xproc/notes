@@ -15,6 +15,12 @@ class EventHandlerBase {
    }
 }
 
+function setStatus(text) {
+   var status = document.getElementById("status");
+   status.innerHTML = "";
+   status.appendChild(document.createTextNode(text));
+}
+
 document.addEventListener("DOMContentLoaded",function() {
    document.getElementById("parse").onclick = function() {
       console.log("Parsing:");
@@ -23,9 +29,10 @@ document.addEventListener("DOMContentLoaded",function() {
       var parser = new grammar(text,new EventHandlerBase());
       try {
          parser.parse_XProc();
+         setStatus("Valid!");
       } catch (e) {
          if (e.getExpected) {
-            console.log(parser.getErrorMessage(e));
+            setStatus(parser.getErrorMessage(e));
          } else {
             throw e;
          }
