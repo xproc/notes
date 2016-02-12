@@ -697,7 +697,7 @@ XProcFlow ::= XProcFlowStatement+
 
 XProcFlowStatement ::= ( XProcStepChain XProcOutputBinding? ) | XProcIfStatement | XProcLetStatement
 
-XProcStepChain ::= (( XProcSequenceLiteral | XProcInputPortList ) XProcStepChainItem+) |
+XProcStepChain ::= (XProcSequenceLiteral XProcStepChainItem+) |
                    ((XProcStepInvocation | XProcBlockStatement) XProcStepChainItem*) 
 
 XProcStepChainItem ::= XProcChainedItem | XProcIteratedItem | XProcTeedItem | XProcReplacedItem
@@ -711,7 +711,7 @@ XProcIteratedItem ::= XProcIteration XProcBlockStatement
 XProcTeedItem ::= XProcTee XProcBlockStatement XProcChainedItem
 XProcReplacedItem ::= XProcReplace '(' PathExpr ')' XProcBlockStatement
 
-XProcChainItem ::= XProcInputPortList | XProcStepInvocation | XProcBlockStatement
+XProcChainItem ::=  XProcStepInvocation | XProcBlockStatement
 
 XProcArrow ::= '=>' | '→'
 
@@ -745,7 +745,7 @@ XProcPortRef ::= '$' QName
 
 XProcProjection ::= '/' ( RelativePathExpr / ) | '//' RelativePathExpr
 
-XProcStepInvocation ::= XProcStepName XProcArgumentList
+XProcStepInvocation ::= (XProcInputPortList XProcArrow)? XProcStepName XProcArgumentList
 
 XProcStepName ::= QName
 
@@ -979,60 +979,6 @@ ParenthesizedItemType
          ::= '(' ItemType ')'
 
 QName    ::= FunctionName
-           | 'ancestor'
-           | 'ancestor-or-self'
-           | 'and'
-           | 'array'
-           | 'attribute'
-           | 'cast'
-           | 'castable'
-           | 'child'
-           | 'comment'
-           | 'declare'
-           | 'descendant'
-           | 'descendant-or-self'
-           | 'div'
-           | 'document-node'
-           | 'element'
-           | 'else'
-           | 'eq'
-           | 'except'
-           | 'following'
-           | 'following-sibling'
-           | 'ge'
-           | 'gt'
-           | 'idiv'
-           | 'if'
-           | 'import'
-           | 'inputs'
-           | 'instance'
-           | 'intersect'
-           | 'is'
-           | 'item'
-           | 'le'
-           | 'let'
-           | 'lt'
-           | 'map'
-           | 'mod'
-           | 'namespace-node'
-           | 'ne'
-           | 'node'
-           | 'option'
-           | 'or'
-           | 'outputs'
-           | 'parent'
-           | 'preceding'
-           | 'preceding-sibling'
-           | 'processing-instruction'
-           | 'replace'
-           | 'self'
-           | 'step'
-           | 'tee'
-           | 'text'
-           | 'to'
-           | 'treat'
-           | 'union'
-           | 'xproc'
            
 FunctionName
          ::= QName^Token
@@ -1047,9 +993,6 @@ Comment
     ::= '(:' ( CommentContents | Comment )* ':)'
     /* ws: explicit */
 
-
-
-<?TOKENS?>
 
 IntegerLiteral
          ::= Digits
@@ -1130,10 +1073,5 @@ Wildcard ::= '*'
            | NCName ':' '*'
            | '*' ':' NCName
            | BracedURILiteral '*'
-
-QName^Token << 'ancestor' 'ancestor-or-self' 'and' 'array' 'attribute' 'cast' 'castable' 'child' 'comment' 'declare' 'descendant' 'descendant-or-self' 'div' 'document-node' 'element' 'else' 'eq' 'except' 'following' 'following-sibling' 'ge' 'gt' 'idiv' 'if' 'import' 'inputs' 'instance' 'intersect' 'is' 'item' 'le' 'let' 'lt' 'map' 'mod' 'namespace-node' 'ne' 'node' 'option' 'or' 'outputs' 'parent' 'preceding' 'preceding-sibling' 'processing-instruction' 'replace' 'self' 'step' 'tee' 'text' 'to' 'treat' 'union' 'xproc' 
-
-'*' << Wildcard
-
 
 ....
