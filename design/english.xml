@@ -1,0 +1,5 @@
+<?xml version='1.0'?>
+<lightenup>
+ <colour name="red" pale="pink"/>
+ <colour name="purple" pale="lilac"/>
+</lightenup>

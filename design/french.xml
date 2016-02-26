@@ -1,0 +1,5 @@
+<?xml version='1.0'?>
+<lightenup>
+ <colour name="rouge" pale="rose"/>
+ <colour name="noir" pale="gris"/>
+</lightenup>
