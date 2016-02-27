@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!DOCTYPE html
+  PUBLIC "-//HST//DTD XHTML5 1.0 Transitional//EN" "http://www.ltg.ed.ac.uk/~ht/xhtml5.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><meta name="copyright" content="Copyright &#xa9; 2016 &lt;a href=&#34;http://www.ltg.ed.ac.uk/~ht/&#34;&gt;Henry S. Thompson&lt;/a&gt;&amp;#160;&lt;a href=&#34;http://creativecommons.org/licenses/by-sa/3.0/deed.en&#34;&gt;CC-BY-SA&lt;/a&gt;"/><meta http-equiv="Content-type" content="text/html; charset=utf-8"/><style type="text/css">
+       ul.nolabel { margin: 0; margin-left: -2.5em}
+       ul.naked.nolabel {margin: 0; margin-left: 0; padding-left: 0}
+       ul.cdefn {clear: both}
+       div.ndli { margin-bottom: 1ex }
+       div.hidden {display: none}
+
+    ul.naked &gt; li { list-style-type: none; background: none; margin-left: 2em;
+margin-bottom: 0 }
+    li ul.naked &gt; li, dd ul.naked &gt; li { list-style-type: none; background: none; margin-left: 0;
+margin-bottom: 0 }
+    li.cdefni {}
+    li.cdefni span.cl {display: inline-block; vertical-align: bottom}
+    li.cdefni span.cr {display: inline-block; margin-left: 1em; vertical-align: bottom}
+   pre.code {display: inline-block}
+   blockquote.vanilla {display: inline-block; margin-left: 1em;
+        border: solid 1px; background: rgb(238,234,230);
+                   padding: .5ex .5em}
+   blockquote.vanilla ul.naked li {margin-left: 0 ! important;font-size: 100%}
+    ol ol ol, ol ol ol li {list-style-type: lower-roman}
+    ol ol, ol ol li {list-style-type: lower-alpha}
+    i i {font-style: normal}
+    li li {font-style: normal}
+    li ul li {font-style: normal}
+    li { line-height: 100%; margin-top: 0.3em}
+    .math {font-family: 'Arial Unicode MS', 'Lucida Sans Unicode', serif}
+    .sub {font-size: 80%; vertical-align: sub}
+    .termref {text-decoration: none; color: #606000}
+       .licence {margin-left: 1em; font-size: 70%}
+       .credits {margin-left: 1.5em; font-size: 70%}
+    .right {position: absolute}
+   .stackdown {vertical-align: text-top; margin-top: 0}
+    body {font-size: 12pt}
+     @page { size: A4 portrait; margin: 2cm} 
+     @media screen {
+     body {width: 20cm; margin-left: auto; margin-right: auto}
+       }
+     pre.code {font-family: monospace;
+ font-weight: bold;
+ line-height: 120%;
+ padding-top: 0.2em;
+ padding-bottom: 0.2em;
+ padding-left: 1em;
+ padding-right: 1em;
+ border-style: solid;
+ border-left-width: 1em;
+ border-top-width: thin;
+ border-right-width: thin;
+ border-bottom-width: thin;
+ border-color: #95ABD0;
+ color: #00428C;
+ background-color: #E4E5E7;
+}
+       pre {margin-left: 0em}
+       div.toc h2 {font-size: 120%; margin-top: 0em; margin-bottom: 0em}
+       div.toc h4 {font-size: 100%; margin-top: 0em; margin-bottom: 0em;
+                   margin-left: 1em}
+       div.toc h1 {font-size: 140%; margin-bottom: 0em}
+       div.toc ul {margin-top: 1ex}
+       .byline {font-size: 120%}
+       div.figure {margin-left: 2em}
+       div.caption {font-style: italic; font-weight: bold; margin-top: 1em}
+       i i {font-style: normal}
+       img {border: 0}
+       .copyright {font-size: 70%}
+     </style><title>How hard can it be?</title></head><body style="font-family: DejaVu Sans, Arial; background: rgb(254,250,246)"><div style="text-align: center" class="head"><hr/><h1>How hard can it be?</h1><div class="byline">Henry S. Thompson</div><div class="byline">26 Feb 2016</div><div class="copyright">Copyright &#xa9; 2016 <a href="http://www.ltg.ed.ac.uk/~ht/">Henry S. Thompson</a>&#160;<a href="http://creativecommons.org/licenses/by-sa/3.0/deed.en">CC-BY-SA</a></div></div><div class="body"><div><h2>1.  Made up requirement for an example pipeline: Lighten-up</h2><div><h4>1.1.  Version 1</h4><p>Input document has <code>product</code> elements with <code>colour</code>
+attributes, whose value is a word.</p><p>Command line provides a value for 'language', 'match' and 'attr' options</p><p>Pipeline should change all dark colours to light ones, e.g. 'red' to
+'pink' and 'rouge' to 'rose', for English and French respectively</p><p>Suppose we already have a step called 'my:dyer', which takes a single
+input document, 
+a match pattern, a
+map  and an attribute name as options, and whenever the value of the match pattern is satisfied and its
+value is a key in the map, it the relevant attribute is replaced by <code>map(key)</code>.</p><p>Suppose further we have json files locally available named
+<code>english.json</code>, <code>french.json</code> containing the necessary maps.</p><p>What does the pipeline to do the job look like?</p><p>As of today, you can find an XProc v.1 approximation to this (<a href="dyer.xpl">dyer.xpl</a>), which given the other files here (e.g. <a href="english.xml">english.xml</a> and <a href="catalogue_e.xml">catalogue_e.xml</a>) will actually work, using Calabash as follows:</p><pre class="code"><code>xproc -i source=catalogue_e.xml dyer.xpl language=english
+match="//product[@colour]"</code></pre><p>So will the French version.</p><p>There is also a (simpler, but not very much simpler :-( XProc<sub>XML</sub> v.2
+version in <a href="dyer_2.xpl">dyer_2.xpl</a>.</p></div><div><h4>1.2.  Version 2</h4><p>As above, but instead of the command line, the input document has an
+xml:lang attribute on the document element, with values 'en', 'fr', etc.</p></div></div><div><h2>2.  Assertion/API semantics</h2><div><h4>2.1.  Version 1</h4><p>Here's my first cut at an abstract API representation of the XProc2[XML]
+pipeline for version 1 of this example.</p><pre class="code"><code>G = TopLevelContext() # has bindings from command-line
+v1 == XPathEval($i_source,G)
+v2 == XPathEval("{$op_language}.json",G)
+v3 == XPathEval($op_match,G)
+v4 == XPathEval($op_attr,G)
+v5 == XPathEval($o_result,G)
+s1 == StepImpl(p:load,uri=v1)
+Pipe(s1.result,s4.source,xml)
+s2 == StepImpl(p:load,uri=v2,override-content-type="application/json")
+Pipe(s2.result,s3.source,json)
+s3 == StepImpl(p:json-to-xdm)
+Pipe(s3.result,v6,xdm)
+C1 == PushContext(G,.=v6)
+v7 == XPathEval(?colourMap,C1)
+C2 == PushContext(C1,lexmap=v7)
+v8 == XPathEval($lexmap,C2)
+s4 == StepImpl(my:dyer,match=v3,lex=v8,attr=v4)
+Pipe(s4.result,s5.source,xml)
+s5 == StepImpl(p:serialize)
+Pipe(s5.result,v5,text/plain)</code></pre><p>That's the top-level pipeline.  The definition of the
+<code>my:dyer</code> step looks like this:</p><pre class="code"><code>S = StepContext() # has bindings from step invocation
+</code></pre><p><span style="color: red">[under construction]</span></p></div></div></div></body></html>

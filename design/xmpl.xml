@@ -1,0 +1,75 @@
+<?xml version='1.0'?>
+<?xml-stylesheet type="text/xsl" href="../../../lib/xml/doc.xsl" ?>
+<!DOCTYPE doc SYSTEM "../../../lib/xml/doc.dtd" >
+<doc>
+ <head>
+  <title>How hard can it be?</title>
+  <author>Henry S. Thompson</author>
+  <date>26 Feb 2016</date>
+ </head>
+ <body>
+  <div>
+   <title>Made up requirement for an example pipeline: Lighten-up</title>
+   <div>
+    <title>Version 1</title>    
+   <p>Input document has <code>product</code> elements with <code>colour</code>
+attributes, whose value is a word.</p>
+   <p>Command line provides a value for 'language', 'match' and 'attr' options</p>
+   <p>Pipeline should change all dark colours to light ones, e.g. 'red' to
+'pink' and 'rouge' to 'rose', for English and French respectively</p>
+   <p>Suppose we already have a step called 'my:dyer', which takes a single
+input document, 
+a match pattern, a
+map  and an attribute name as options, and whenever the value of the match pattern is satisfied and its
+value is a key in the map, it the relevant attribute is replaced by <code>map(key)</code>.</p>
+   <p>Suppose further we have json files locally available named
+<code>english.json</code>, <code>french.json</code> containing the necessary maps.</p>
+<p>What does the pipeline to do the job look like?</p>
+    <p>As of today, you can find an XProc v.1 approximation to this (<link href="dyer.xpl">dyer.xpl</link>), which given the other files here (e.g. <link href="english.xml">english.xml</link> and <link href="catalogue_e.xml">catalogue_e.xml</link>) will actually work, using Calabash as follows:</p>
+    <display><code>xproc -i source=catalogue_e.xml dyer.xpl language=english
+match="//product[@colour]"</code></display>
+<p>So will the French version.</p>
+    <p>There is also a (simpler, but not very much simpler :-( XProc<x:sub>XML</x:sub> v.2
+version in <link href="dyer_2.xpl">dyer_2.xpl</link>.</p>
+   </div>
+   <div>
+    <title>Version 2</title>
+    <p>As above, but instead of the command line, the input document has an
+xml:lang attribute on the document element, with values 'en', 'fr', etc.</p>
+   </div>
+  </div>
+  <div>
+   <title>Assertion/API semantics</title>
+   <div>
+    <title>Version 1</title>
+    <p>Here's my first cut at an abstract API representation of the XProc2[XML]
+pipeline for version 1 of this example.</p>
+    <display><code>G = TopLevelContext() # has bindings from command-line
+v1 == XPathEval($i_source,G)
+v2 == XPathEval("{$op_language}.json",G)
+v3 == XPathEval($op_match,G)
+v4 == XPathEval($op_attr,G)
+v5 == XPathEval($o_result,G)
+s1 == StepImpl(p:load,uri=v1)
+Pipe(s1.result,s4.source,xml)
+s2 == StepImpl(p:load,uri=v2,override-content-type="application/json")
+Pipe(s2.result,s3.source,json)
+s3 == StepImpl(p:json-to-xdm)
+Pipe(s3.result,v6,xdm)
+C1 == PushContext(G,.=v6)
+v7 == XPathEval(?colourMap,C1)
+C2 == PushContext(C1,lexmap=v7)
+v8 == XPathEval($lexmap,C2)
+s4 == StepImpl(my:dyer,match=v3,lex=v8,attr=v4)
+Pipe(s4.result,s5.source,xml)
+s5 == StepImpl(p:serialize)
+Pipe(s5.result,v5,text/plain)</code></display>
+    <p>That's the top-level pipeline.  The definition of the
+<code>my:dyer</code> step looks like this:</p>
+    <display><code>S = StepContext() # has bindings from step invocation
+</code></display>
+    <p><emph color="red">[under construction]</emph></p>
+   </div>
+  </div>
+ </body>
+</doc>

@@ -41,7 +41,7 @@
       <p:input port="attributes">
        <!-- note the p:make-attribute function would need to be defined,
               either primitively (XSLT and XQuery have their own
-		variants of this, or just using XQuery? -->
+		variants of this), or just using XQuery? -->
         <x>
          {p:make-attribute($attr, $lex($ca))}
         </x>
@@ -65,14 +65,22 @@
      </pre>
     </p:documentation>
   </p:load>
- <p:jsonToXDM>
+ <p:json-to-xdm>
   <p:documentation>
-   <p>A new step which converts an application/json document to an XDM
+   <p>A new step which converts a json node to an XDM
       item (array, map or literal)</p>
   </p:documentation>
- </p:jsonToXDM>
+ </p:json-to-xdm>
   <p:variable name="lexmap" select="?colourMap">
+   <p:documentation>
+    <p>Assumes we get the XDM map from the json doc as the default
+       readable port == context node for the select here</p>
+   </p:documentation>
   </p:variable>
-  <my:dyer match="{$match}" lex="{$lexmap}" attr="{$attr}"/>
+  <my:dyer match="{$match}" lex="{$lexmap}" attr="{$attr}">
+   <p:input port="source">
+    <p:pipe step="main" port="source"/>
+  </p:input>
+  </my:dyer>
  
 </p:pipeline>
